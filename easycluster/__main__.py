@@ -20,9 +20,11 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import multiprocessing
+
 if __name__ == '__main__':
     multiprocessing.freeze_support()
 
     import sys
     import easycluster.server
+
     sys.exit(easycluster.server.server_main())

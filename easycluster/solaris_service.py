@@ -37,7 +37,7 @@ else:
     SUFFIX = ''
 
 KEY_PATH = '/etc/easycluster_service%s.key' % SUFFIX
-SVC_NAME='network/easycluster%s' % SUFFIX
+SVC_NAME = 'network/easycluster%s' % SUFFIX
 
 SERVICE_XML = '''\
 <?xml version="1.0"?>
@@ -120,10 +120,12 @@ SERVICE_XML = '''\
 </service_bundle>
 '''
 
+
 def check_call(prog):
     rc = subprocess.call(prog)
     if rc != 0:
         raise OSError('%s exited with code %d' % (prog[0], rc))
+
 
 def install_service():
     xml = SERVICE_XML % dict(exe=sys.executable, mod=__name__, suffix=SUFFIX)
@@ -144,10 +146,12 @@ def install_service():
         except EnvironmentError:
             pass
 
+
 def uninstall_service():
     if query_service_installed():
         check_call(['svcadm', 'disable', '-s', SVC_NAME])
         check_call(['svccfg', 'delete', SVC_NAME])
+
 
 def start_service():
     rc, txt = _service_status()
@@ -160,9 +164,11 @@ def start_service():
     else:
         raise OSError('EasyCluster service not installed')
 
+
 def stop_service():
     if query_service_installed():
         check_call(['svcadm', 'disable', '-s', SVC_NAME])
+
 
 def _service_status():
     proc = subprocess.Popen(['svcs', SVC_NAME], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -170,9 +176,11 @@ def _service_status():
     rc = proc.wait()
     return rc, out.splitlines()[-1]
 
+
 def query_service_installed():
     rc, out = _service_status()
     return rc == 0
+
 
 if __name__ == '__main__':
     sys.exit(linux_service.init_main())

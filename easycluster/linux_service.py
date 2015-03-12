@@ -66,11 +66,12 @@ PATH=/sbin:/usr/sbin:/bin:/usr/bin
 exec '%(exe)s' -m %(name)s "$@"
 '''
 
+
 def install_service():
     temp_path = INIT_PATH + '~'
 
     with open(temp_path, 'w') as fp:
-        fp.write(INIT_SCRIPT %  dict(exe=sys.executable, name=__name__, suffix=SUFFIX))
+        fp.write(INIT_SCRIPT % dict(exe=sys.executable, name=__name__, suffix=SUFFIX))
 
     os.chmod(temp_path, 0o755)
     os.rename(temp_path, INIT_PATH)
@@ -87,6 +88,7 @@ def install_service():
             break
     else:
         raise OSError("No method of installing initscripts found (tried Debian, Redhat, LSB)")
+
 
 def uninstall_service():
     for prog in (['update-rc.d', '-f', SERVICE_NAME, 'remove'],
@@ -108,14 +110,18 @@ def uninstall_service():
 
     return 0
 
+
 def start_service():
     return start_daemon()
+
 
 def stop_service():
     return stop_daemon()
 
+
 def query_service_installed():
     return os.path.exists(INIT_PATH)
+
 
 def is_daemon(pid, name):
     try:
@@ -126,7 +132,7 @@ def is_daemon(pid, name):
     try:
         cmdf = '/proc/%d/cmdline' % pid
         if not os.path.exists(cmdf):
-            ## Proc not mounted or not Linux - just assume pidfile is valid
+            # # Proc not mounted or not Linux - just assume pidfile is valid
             return True
 
         with open(cmdf, 'r') as fp:
@@ -137,12 +143,14 @@ def is_daemon(pid, name):
         pass
     return False
 
+
 def read_pidfile(fil):
     try:
         with open(fil, 'r') as fp:
             return int(fp.read().strip())
     except (EnvironmentError, ValueError):
         return 0
+
 
 def getpid():
     pid = read_pidfile(PIDFILE)
@@ -158,6 +166,7 @@ def getpid():
 
     return pid
 
+
 def start_daemon():
     opid = getpid()
     if opid:
@@ -171,6 +180,7 @@ def start_daemon():
         return 2
     print("ok.")
     return 0
+
 
 def stop_daemon():
     pid = getpid()
@@ -227,6 +237,7 @@ def init_main():
         print("Usage: %s {start|stop|restart|reload|force-reload}" % sys.argv[0], file=sys.stderr)
         exitstat = 1
     return exitstat
+
 
 if __name__ == '__main__':
     sys.exit(init_main())

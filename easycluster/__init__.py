@@ -104,10 +104,13 @@ if PYTHON3:
     import pickle
     import queue
     import builtins
+
     def _hexenc(data):
         return b2a_hex(data).decode('ascii')
+
     def _hexdec(data):
         return a2b_hex(data.encode('ascii'))
+
     def _str_to_bytes(data):
         return str(data).encode('utf-8')
 
@@ -118,11 +121,12 @@ else:
     import cPickle as pickle
     import Queue as queue
     import __builtin__ as builtins
+
     _hexenc = b2a_hex
     _hexdec = a2b_hex
     _str_to_bytes = str
 
-    ## Make all classes new-style by default
+    # # Make all classes new-style by default
     __metaclass__ = type
     _next_method = 'next'
 
@@ -142,7 +146,7 @@ __all__ = ['AutoThreadingClient', 'ThreadedClient', 'Client', 'ClientGroup',
            'make_singleton', 'read_key_file', 'write_key_file',
            'parse_connection_spec']
 
-## Special value for TID which causes thread to exit after one request
+# # Special value for TID which causes thread to exit after one request
 SINGLE = -1
 
 _nonblocking_errors = set()
@@ -167,6 +171,7 @@ _singletons = {}
 
 _extra_base_classes = {}
 
+
 def eval_multi(connections, code):
     '''Evaluates a Python expression on multiple connections in parallel. Does
     not return until all hosts finish executing the code.
@@ -187,6 +192,7 @@ def eval_multi(connections, code):
 
     resp = [h.eval(code, nonblocking=True) for h in connections]
     return [r.wait() for r in resp]
+
 
 def execblock_multi(connections, code):
     '''Similar to L{eval_multi}, except C{code} is a block of python code
@@ -209,6 +215,7 @@ def execblock_multi(connections, code):
     resp = [h.evalblock(code, nonblocking=True) for h in connections]
     return [r.wait() for r in resp]
 
+
 def call_multi(_connections, _func, *a, **kw):
     '''Calls a function on multiple connections in parallel. Any extra
     positional and keyword arguments are passed to the remote function.
@@ -228,6 +235,7 @@ def call_multi(_connections, _func, *a, **kw):
     '''
     resp = [h.raw_call(_func, a, kw, nonblocking=True) for h in _connections]
     return [r.wait() for r in resp]
+
 
 def call_method_multi(_objects, _method, *a, **kw):
     '''Calls a method on multiple L{RemoteProxy} objects in parallel. Each
@@ -249,6 +257,7 @@ def call_method_multi(_objects, _method, *a, **kw):
     '''
     resp = [o.raw_call_method(_method, a, kw, nonblocking=True) for o in _objects]
     return [r.wait() for r in resp]
+
 
 def make_server_class(typ, export_methods=('@auto',), export_attrs=('@auto',),
                       export_attrs_cache=(), proxy_class=None):
@@ -295,6 +304,7 @@ def make_server_class(typ, export_methods=('@auto',), export_attrs=('@auto',),
         # new-style classes to find the first one in this dict.
         _extra_base_classes[typ] = typedat
 
+
 def make_singleton(obj, export_methods=('@auto',), export_attrs=('@auto',),
                    export_attrs_cache=(), proxy_class=None):
     '''Mark an object instance as a server object. Similar to
@@ -332,6 +342,7 @@ def make_singleton(obj, export_methods=('@auto',), export_attrs=('@auto',),
     '''
 
     addr = id(obj)
+
     def wrcb(wr, addr=addr):
         _singletons.pop(addr, None)
 
@@ -348,19 +359,24 @@ def make_singleton(obj, export_methods=('@auto',), export_attrs=('@auto',),
     _singletons[addr] = typedat, weak_ref, strong_ref
     return obj
 
+
 class _DummyConnection(object):
     '''Replacement object for _connection in invalidated proxies.'''
     peername = '<closed connection>'
+
     def send_request(self, *a, **kw):
         raise IOError("Connection has been closed")
 
+
 _dummy_connection = _DummyConnection()
+
 
 class _RemoteProxyRef(weakref.ref):
     '''A weak reference to a remote proxy. Used to tell the Client class when a
     proxy is no longer being used so the server can delete the object it refers
     to.'''
     __slots__ = ('oid',)
+
     def __new__(cls, prox, cb, oid):
         self = weakref.ref.__new__(cls, prox, cb)
         self.oid = oid
@@ -369,11 +385,14 @@ class _RemoteProxyRef(weakref.ref):
     def __init__(self, prox, cb, oid):
         super(_RemoteProxyRef, self).__init__(prox, cb)
 
+
 def _create_wrapper_method(name):
     def rtnf(self, *a, **kw):
         return self._connection.send_request(self._oid, name, a, kw, *_get_special_keywords(kw))
+
     rtnf.__name__ = name
     return rtnf
+
 
 def _create_attr_wrapper(name):
     def get(self):
@@ -387,8 +406,10 @@ def _create_attr_wrapper(name):
 
     return property(get, set, delete)
 
+
 def _create_cached_attr_wrapper(name):
     non_existant = object()
+
     def get(self):
         d = self.__dict__
         val = d.get(name, non_existant)
@@ -409,8 +430,10 @@ def _create_cached_attr_wrapper(name):
 
     return property(get, set, delete)
 
+
 class _RemoteProxyMeta(type):
     '''Metaclass for L{RemoteProxy} and subclasses'''
+
     def __new__(mcs, clsname, bases, typedict):
         proxy_methods = typedict.setdefault('proxy_methods', ())
         proxy_attrs = typedict.setdefault('proxy_attrs', ())
@@ -427,7 +450,9 @@ class _RemoteProxyMeta(type):
 
         return super(_RemoteProxyMeta, mcs).__new__(mcs, clsname, bases, typedict)
 
+
 _RemoteProxyBase = _RemoteProxyMeta('_RemoteProxyBase', (object,), {'__module__': __name__})
+
 
 class RemoteProxy(_RemoteProxyBase):
     '''A client-side proxy for an object on the server.'''
@@ -478,11 +503,11 @@ class RemoteProxy(_RemoteProxyBase):
         if C{nonblocking} is True.
         '''
         return self._connection.send_request(self._oid, method, args, kwargs,
-                                         nonblocking, oncomplete, onerror, threadid, origexc)
+                                             nonblocking, oncomplete, onerror, threadid, origexc)
 
     def raw_get_attribute(self, attr, nonblocking=False,
-                        oncomplete=None, onerror=None, threadid=None,
-                        origexc=True):
+                          oncomplete=None, onerror=None, threadid=None,
+                          origexc=True):
         '''Get the value of an attribute on the remote object.
 
         See L{Client.send_request} for the meaning of the C{nonblocking},
@@ -498,8 +523,8 @@ class RemoteProxy(_RemoteProxyBase):
                                              nonblocking, oncomplete, onerror, threadid, origexc)
 
     def raw_set_attribute(self, attr, val, nonblocking=False,
-                        oncomplete=None, onerror=None, threadid=None,
-                        origexc=True):
+                          oncomplete=None, onerror=None, threadid=None,
+                          origexc=True):
         '''Set the value of an attribute on the remote object.
 
         See L{Client.send_request} for the meaning of the C{nonblocking},
@@ -518,6 +543,7 @@ class RemoteProxy(_RemoteProxyBase):
 
     def __repr__(self):
         return '<RemoteProxy for oid %d on %s>' % (self._oid, self._connection.peername)
+
 
 class DefaultRemoteProxy(RemoteProxy):
     """A remote proxy for server-side classes that want to automatically export
@@ -538,6 +564,7 @@ class DefaultRemoteProxy(RemoteProxy):
     """
 
     _known_methods = None
+
     def __init__(self, *args, **kw):
         super(DefaultRemoteProxy, self).__init__(*args, **kw)
         self._known_methods = {}
@@ -571,6 +598,7 @@ class DefaultRemoteProxy(RemoteProxy):
             return RemoteProxy.__delattr__(self, attr)
         return self._connection.send_request(0, 'delattr', (self, attr))
 
+
 class SelfIterProxy(RemoteProxy):
     """A proxy class for an iterator which returns itself when __iter__ is
     called."""
@@ -579,8 +607,10 @@ class SelfIterProxy(RemoteProxy):
     def __iter__(self):
         return self
 
+
 class _TypeData(str):
     pass
+
 
 class ServerObject:
     '''A base class for objects which can be referenced by a client.'''
@@ -604,10 +634,12 @@ class ServerObject:
     If this is specified, then C{export_methods}, C{export_attrs}, and
     C{export_attrs_cache} are ignored. See L{make_server_class} for details.'''
 
+
 class RemoteException(Exception):
     '''Raised on the client when an exception occurs during execution, and
     C{origexc} is False. See L{Client.send_request} for more information.
     '''
+
     def __init__(self, orig=None, text=None):
         Exception.__init__(self, str(orig))
 
@@ -617,9 +649,11 @@ class RemoteException(Exception):
         self.text = text
         '''A list of strings as returned by L{traceback.format_exception}.'''
 
+
 class NonblockingResponse:
     '''Returned by remote calls when the C{nonblocking} flag is set to True. See
     L{Client.send_request} for more information.'''
+
     def __init__(self, client, request_id, origexc):
         self.client = client
         self.request_id = request_id
@@ -663,8 +697,10 @@ class NonblockingResponse:
             raise rval
         return rval
 
+
 class Connection:
     '''Base class for Client and Server objects'''
+
     def __init__(self, key, enable_compression=False):
         self._key = key
         self._recv_buf = BytesIO()
@@ -805,7 +841,7 @@ class Connection:
 
         with self._sendlock:
             if (self._enable_compression and self._peer_enable_compression and
-                typ in _pickle_messages and len(data) >= 32):
+                        typ in _pickle_messages and len(data) >= 32):
                 typ |= MSG_COMPRESSED
                 c = self._compress
                 data = c.compress(data)
@@ -867,7 +903,8 @@ class Connection:
 
         self._peer_enable_compression = p.get('enable-compression', False)
 
-        self._pickle_protocol = min(p.get('supported-pickle-protocol', pickle.HIGHEST_PROTOCOL), pickle.HIGHEST_PROTOCOL)
+        self._pickle_protocol = min(p.get('supported-pickle-protocol', pickle.HIGHEST_PROTOCOL),
+                                    pickle.HIGHEST_PROTOCOL)
 
         return self._check_version(vers)
 
@@ -993,9 +1030,11 @@ class Connection:
             self._sock.shutdown(socket.SHUT_RDWR)
             self._sock = None
 
+
 class _GlobalProxy:
     '''A proxy for a global object on a remote server'''
     __slots__ = ('_client', '_name')
+
     def __init__(self, client, name):
         self._client = client
         self._name = name
@@ -1021,6 +1060,7 @@ class _GlobalProxy:
     def __call__(self, *args, **kw):
         return self._client.raw_call(self._name, args, kw, *_get_special_keywords(kw))
 
+
 _upgrade_code = r'''
 import sys, os, zlib
 import easycluster as _core
@@ -1033,7 +1073,7 @@ def upgrade(osvr, defmod):
         eval(cb, mod.__dict__)
     defmod.define('import easycluster\nfrom easycluster import *\n')
     return _server.Server(osvr._key, osvr._sock, osvr._peername, osvr._verbosity, osvr)
-''' # '''
+'''  # '''
 
 ## Bootstrap code to do an in-memory upgrade on versions older than 0.19
 _compat_upgrade_code = _upgrade_code + r'''
@@ -1059,7 +1099,7 @@ def hack_req(*args):
         _exit(0)
 
 osvr._got_request = hack_req
-''' # '''
+'''  # '''
 
 
 class Client(Connection):
@@ -1192,7 +1232,8 @@ class Client(Connection):
         if _version_compare(pv, VERSION) != 0:
             if _version_compare(pv, '0.09') < 0:
                 raise ValueError('Incompatible EasyCluster version: client has version %s, server has version %s; '
-                                 'client requires server to have at least version %s' % (VERSION, pv, MIN_SERVER_VERSION))
+                                 'client requires server to have at least version %s' % (
+                                 VERSION, pv, MIN_SERVER_VERSION))
 
             else:
                 return self._send_upgrade(_version_compare(pv, '0.19') < 0)
@@ -1444,12 +1485,12 @@ class Client(Connection):
         source = self._defmod._source_code
         current_count = self._definition_count
         rv = self.send_request(0, 'update_definitions', (source[current_count:],), {},
-                          nonblocking, oncomplete, onerror, threadid, origexc)
+                               nonblocking, oncomplete, onerror, threadid, origexc)
         self._definition_count = len(source)
         return rv
 
     def raw_call(self, func, args, kwargs={}, nonblocking=False,
-                        oncomplete=None, onerror=None, threadid=None, origexc=True):
+                 oncomplete=None, onerror=None, threadid=None, origexc=True):
         '''Call a function by name on the remote server.
 
         See L{Client.send_request} for the meaning of the C{nonblocking},
@@ -1593,13 +1634,14 @@ class Client(Connection):
                             else:
                                 export_attrs.append(attr)
 
-                    typedict = {'__module__':__name__,
+                    typedict = {'__module__': __name__,
                                 'proxy_methods': export_methods,
                                 'proxy_attrs': export_attrs,
                                 'proxy_attrs_cache': export_attrs_cache
-                                }
-                    proxclas = _RemoteProxyMeta('dynamic_proxy_' + '_'.join(export_methods + export_attrs + export_attrs_cache),
-                                               (base_class,), typedict)
+                    }
+                    proxclas = _RemoteProxyMeta(
+                        'dynamic_proxy_' + '_'.join(export_methods + export_attrs + export_attrs_cache),
+                        (base_class,), typedict)
 
                 else:
                     mod, cls = typedat.rsplit('.', 1)
@@ -1655,6 +1697,7 @@ class Client(Connection):
             if nbr:
                 nbr.set_response(error)
 
+
 class _ATCThread(threading.Thread):
     def __init__(self, atc):
         threading.Thread.__init__(self)
@@ -1704,6 +1747,7 @@ class _ATCThread(threading.Thread):
         finally:
             atc.close(*closeargs)
 
+
 class ThreadedClient(Client):
     '''A client that automatically creates unique threads on the server for each
     thread on the client that makes remote calls.
@@ -1738,7 +1782,7 @@ class ThreadedClient(Client):
         self._wrthread = None
 
         Client.__init__(self, key, host, port, definitions, enable_compression,
-        ssh, user, rpython, extra_args)
+                        ssh, user, rpython, extra_args)
 
         self._init_data['keep_alive_interval'] = keep_alive_interval
 
@@ -1819,6 +1863,7 @@ class ThreadedClient(Client):
         if thread and thread != threading.current_thread():
             thread.join()
 
+
 class ClientGroup:
     '''Represents a set of Client objects that can be queried as a group.'''
 
@@ -1842,7 +1887,7 @@ class ClientGroup:
 
         self.clients[fd] = cl
         if self.epoll:
-            self.epoll.register(fd, select.POLLIN|select.POLLERR|select.POLLHUP)
+            self.epoll.register(fd, select.POLLIN | select.POLLERR | select.POLLHUP)
 
     def remove_client(self, cl):
         '''Remove a L{Client} instance from the group. Does nothing if the client is not registered.'''
@@ -1885,9 +1930,11 @@ class ClientGroup:
 ## Backwards-compatible alias
 AutoThreadingClient = ThreadedClient
 
+
 def exec_return(rval):
     '''When called from within code sent to L{Client.execblock}, causes eval to return C{rval}.'''
     raise _ExecReturn(rval)
+
 
 def definitions_module(name, keep_source=True):
     '''Get or create a module to store common definitions in.
@@ -1926,6 +1973,7 @@ def definitions_module(name, keep_source=True):
 
     sys.modules[name] = mod
     mod._source_code = source = []
+
     def define(code, local=True):
         if not code.endswith('\n'):
             code += '\n'
@@ -1940,6 +1988,7 @@ def definitions_module(name, keep_source=True):
     define('import easycluster\nfrom easycluster import *\n')
     del source[:]
     return mod
+
 
 def define_common(code, name='easycluster.remote_code', local=True):
     '''Define common classes in the specified module. Equivalent to:
@@ -1958,20 +2007,23 @@ def define_common(code, name='easycluster.remote_code', local=True):
     '''
     definitions_module(name).define(code, local)
 
+
 def decode_key(key):
     '''If C{key} is a hex-encoded string of the proper size, returns the actual key,
     otherwise returns a hash of the original string.'''
     try:
-        if len(key) == 2*HMAC_SIZE:
+        if len(key) == 2 * HMAC_SIZE:
             return _hexdec(key)
     except Exception:
         pass
     return HMAC_MOD(_str_to_bytes(key)).digest()
 
+
 def read_key_file(path):
     '''Read an HMAC key from a file.'''
     with open(path, 'r') as fp:
         return decode_key(fp.readline().rstrip('\r\n'))
+
 
 def write_key_file(path, key, overwrite=False):
     '''Write an HMAC key to a file. If C{overwrite} is True, it will try to
@@ -1983,6 +2035,7 @@ def write_key_file(path, key, overwrite=False):
         return _write_key_file(path, key)
     return True
 
+
 def generate_key():
     '''Generates a random HMAC key of the proper size.'''
     return os.urandom(HMAC_SIZE)
@@ -1991,10 +2044,12 @@ def generate_key():
 def add_key_options(options, key_option='-K', keyfile_option='-k'):
     '''Add options for specifying a HMAC key or keyfile to an L{optparse.OptionParser}.'''
     options.add_option(key_option, '--key', help='HMAC key to use; either a %d-character hex string '
-                       'or a ASCII string which will be padded. This method of specifying a key '
-                       'is insecure because other users on the system can read it.' % (2*HMAC_SIZE))
+                                                 'or a ASCII string which will be padded. This method of specifying a key '
+                                                 'is insecure because other users on the system can read it.' % (
+                                                 2 * HMAC_SIZE))
     options.add_option(keyfile_option, '--keyfile', metavar='FILE', help='Read HMAC key from file. This '
-                       'is the preferred method of specifying a key.')
+                                                                         'is the preferred method of specifying a key.')
+
 
 def key_from_options(opts, warn=True):
     '''Get an HMAC key from an options instance.
@@ -2015,6 +2070,7 @@ def key_from_options(opts, warn=True):
             print('SECURITY WARNING: using key from command line.', file=sys.stderr)
         key = decode_key(opts.key)
     return key
+
 
 def parse_connection_spec(spec, default_port=None, default_key=b'',
                           default_enable_compression=False, custom_options=(),
@@ -2183,6 +2239,7 @@ def parse_connection_spec(spec, default_port=None, default_key=b'',
     else:
         return params
 
+
 def _get_upgrade_code():
     global _compcode
     try:
@@ -2197,11 +2254,13 @@ def _get_upgrade_code():
 
     return _compcode
 
+
 def _get_global_root(mod, attr):
     try:
         return getattr(mod, attr)
     except AttributeError:
         return getattr(builtins, attr)
+
 
 def _try_import(mod, name, is_root):
     newname = (name if is_root else mod.__name__ + '.' + name)
@@ -2218,6 +2277,7 @@ def _try_import(mod, name, is_root):
         val = getattr(mod, name)
 
     return val
+
 
 def get_global(name, context=None, auto_import=False):
     """
@@ -2266,6 +2326,7 @@ def get_global(name, context=None, auto_import=False):
 
     return val
 
+
 def set_global(name, value, context=None):
     """
     Set a global variable in the context of the given module. If C{name}
@@ -2296,6 +2357,7 @@ def set_global(name, value, context=None):
         gv = get_global('.'.join(components[:-1]), context)
         setattr(gv, components[-1], value)
 
+
 def _ss(ccode):
     '''SSH bootstrap function'''
     global _compcode
@@ -2315,6 +2377,7 @@ def _ss(ccode):
     svr = server.Server(None, sock, peer, verbosity=0)
     while svr:
         svr = svr.run()
+
 
 if PYTHON3:
     _ssh_default_python = 'python3'
@@ -2345,7 +2408,8 @@ print('YEC')
 e,c=r('easycluster',%d)
 e.server,s=r('easycluster.server',%d)
 e._ss((c,s))
-''' # '''
+'''  # '''
+
 
 def _prepare_ssh(ssh_args):
     coredata, svrdata = _get_upgrade_code()
@@ -2369,6 +2433,7 @@ def _prepare_ssh(ssh_args):
     sock.sendall(svrdata)
     return sock
 
+
 #def _connect_ssh(host, port=None, user=None, ssh='ssh', extra_args=()):
 
 ###############################
@@ -2382,16 +2447,19 @@ class GeneratorProxy(SelfIterProxy):
     def __iter__(self):
         return self
 
+
 class FileProxy(RemoteProxy):
     """A proxy class for files and file-like objects."""
-    proxy_methods = ('close',  'errors', 'fileno', 'flush', 'isatty', 'next', 'read',
+    proxy_methods = ('close', 'errors', 'fileno', 'flush', 'isatty', 'next', 'read',
                      'readinto', 'readline', 'readlines', 'seek', 'tell', 'truncate',
                      'write', 'writelines', 'xreadlines')
     proxy_attrs = ('closed', 'encoding', 'errors', 'mode', 'name', 'newlines')
 
+
 class _ExecReturn(BaseException):
     def __init__(self, val):
         self.val = val
+
 
 class PipeSocket:
     def __init__(self, proc, rfd=None, wfd=None, peername=None):
@@ -2466,6 +2534,7 @@ class PipeSocket:
     def getpeername(self):
         return self._peername
 
+
 ###############################
 # Internal functions
 ###############################
@@ -2494,11 +2563,13 @@ def _get_typedat(obj, typ):
             return r
     return None
 
+
 def _fill_old_style_mro(typ, mro):
     if typ not in mro:
         mro.append(typ)
     for b in typ.__bases__:
         _fill_old_style_mro(b, mro)
+
 
 def _class_mro(typ):
     mro = getattr(typ, '__mro__', None)
@@ -2507,6 +2578,7 @@ def _class_mro(typ):
     mro = []
     _fill_old_style_mro(typ, mro)
     return mro
+
 
 def _make_typedat(typ, export_methods, export_attrs, export_attrs_cache, proxy_class):
     '''
@@ -2546,6 +2618,7 @@ def _make_typedat(typ, export_methods, export_attrs, export_attrs_cache, proxy_c
 
         return _TypeData(':' + ','.join(sorted(export_methods or ())) + ':' + ','.join(sorted(export_attrs)))
 
+
 def _get_module(name):
     '''Imports and returns a module object.'''
     components = name.split('.')
@@ -2553,6 +2626,7 @@ def _get_module(name):
     for c in components[1:]:
         mod = getattr(mod, c)
     return mod
+
 
 def _get_peer_name(addr):
     if isinstance(addr, tuple):
@@ -2568,6 +2642,7 @@ def _get_peer_name(addr):
         return '%s:%d' % (host, port)
     return addr
 
+
 def _sock_sendall(sock, data):
     '''Send all of C{data} over C{sock}, blocking until the send is complete'''
     while data:
@@ -2579,6 +2654,7 @@ def _sock_sendall(sock, data):
                 raise
             select.select([], [sock], [], None)
 
+
 def _get_special_keywords(kwargs):
     '''Returns the values of the keywords nonblocking, oncomplete, onerror, and threadid.'''
 
@@ -2588,6 +2664,7 @@ def _get_special_keywords(kwargs):
     threadid = kwargs.pop('threadid', None)
     origexc = kwargs.pop('origexc', True)
     return nonblocking, oncomplete, onerror, threadid, origexc
+
 
 def _add_extra_classes():
     make_server_class(GeneratorType, proxy_class=GeneratorProxy)
@@ -2599,6 +2676,7 @@ def _add_extra_classes():
 
     try:
         import _io
+
         make_server_class(_io._IOBase, proxy_class=FileProxy)
         del _io
     except (NameError, ImportError):
@@ -2607,11 +2685,14 @@ def _add_extra_classes():
     # Proxy module objects.
     make_server_class(ModuleType)
 
+
 _add_extra_classes()
 del _add_extra_classes
 
+
 def _vers_tuple(vers):
     return tuple(int(v) for v in vers.split('.'))
+
 
 def _version_compare(va, vb):
     va = _vers_tuple(va)
@@ -2622,8 +2703,10 @@ def _version_compare(va, vb):
         return 1
     return 0
 
+
 if sys.platform.startswith('win'):
     from ctypes import windll, WinError, wintypes
+
     kernel32 = windll.kernel32
     SetHandleInformation = kernel32.SetHandleInformation
     SetHandleInformation.argtypes = [wintypes.HANDLE, wintypes.DWORD, wintypes.DWORD]
@@ -2636,14 +2719,14 @@ if sys.platform.startswith('win'):
 
         dacl = win32security.ACL()
 
-        user, domain, type = win32security.LookupAccountName ("", win32api.GetUserName())
+        user, domain, type = win32security.LookupAccountName("", win32api.GetUserName())
         dacl.AddAccessAllowedAce(win32security.ACL_REVISION,
                                  ntsecuritycon.FILE_ALL_ACCESS, user)
 
         try:
-            user, domain, type = win32security.LookupAccountName ("", 'SYSTEM')
+            user, domain, type = win32security.LookupAccountName("", 'SYSTEM')
             dacl.AddAccessAllowedAce(win32security.ACL_REVISION,
-                                 ntsecuritycon.FILE_ALL_ACCESS, user)
+                                     ntsecuritycon.FILE_ALL_ACCESS, user)
         except pywintypes.error:
             pass
 

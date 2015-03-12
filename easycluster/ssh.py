@@ -28,6 +28,7 @@ import fcntl
 import easycluster as _core
 import socket
 
+
 class PipeSocket(object):
     def __init__(self, proc, rfd=None, wfd=None, peername=None):
         self._proc = proc
@@ -91,13 +92,16 @@ class PipeSocket(object):
     def getpeername(self):
         return self._peername
 
+
 def _ss(key):
     from easycluster import server
+
     peer = ':'.join(os.getenv('SSH_CONNECTION').split()[:2])
     sock = PipeSocket(None, 0, 1)
     svr = server.Server(key, sock, peer)
     while svr:
         svr = svr.run()
+
 
 if _core.PYTHON3:
     python_cmd = "python3 -c 'exec(eval(input()))'"
@@ -121,7 +125,8 @@ os.write(1,%r)
 r('easycluster',%d)
 r('easycluster.server',%d)
 r('easycluster.ssh',%d)._ss(%r)
-''' # '''
+'''  # '''
+
 
 def prepare_ssh(ssh_args):
     key = _core.generate_key()
@@ -138,6 +143,7 @@ def prepare_ssh(ssh_args):
     sock.sendall(svrdata)
     sock.sendall(sshdata)
     return sock, key
+
 
 def connect_ssh(host, port=None, user=None, ssh='ssh', extra_args=(), client_class=None):
     args = [ssh]

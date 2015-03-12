@@ -47,7 +47,7 @@ from collections import deque
 from types import ModuleType, BuiltinMethodType, MethodType, FunctionType
 
 
-## Stolen from multiprocessing. We can't just use multiprocessing -- it has way
+# # Stolen from multiprocessing. We can't just use multiprocessing -- it has way
 ## too many weird bugs on Windows.
 
 WINSERVICE = sys.executable.lower().endswith("pythonservice.exe")
@@ -93,8 +93,10 @@ except ImportError:
 
 _method_types = BuiltinMethodType, MethodType, FunctionType, type(_core.set_global.__call__)
 
+
 class RootObject(object):
     '''Utility class instantiated automatically on the server as OID 0.'''
+
     def __init__(self):
         self._defmod = None
 
@@ -144,10 +146,12 @@ class RootObject(object):
         new = data['upgrade'](self._defmod.running_server, self._defmod)
         raise _Replace(new)
 
+
 def profile_request(func, args):
     '''Profile a function call and write the results to the user's
     home directory. Used only for debugging.'''
     import cProfile, pstats
+
     ctime = time.time()
     itime = int(ctime)
     frac = ctime - itime
@@ -160,8 +164,10 @@ def profile_request(func, args):
         fp.write('Profile of %r:\n' % (args,))
         pstats.Stats(prof, stream=fp).sort_stats('time').print_stats()
 
+
 class ServerThread(threading.Thread):
     '''A thread that runs code on behalf of the client.'''
+
     def __init__(self, svr, tid):
         threading.Thread.__init__(self)
         self.tid = tid
@@ -183,9 +189,11 @@ class ServerThread(threading.Thread):
             #profile_request(svr.run_request, (rid, obj, meth, args, kw))
             svr.run_request(rid, obj, meth, args, kw)
 
+
 class _Replace(BaseException):
     def __init__(self, new):
         self.new = new
+
 
 class Server(_core.Connection):
     '''Represents the server side of a remote connection.'''
@@ -386,8 +394,10 @@ class Server(_core.Connection):
 ## For compatibility
 QuietServer = Server
 
+
 class IPAddress(object):
     '''Represents an IP address with optional network mask length'''
+
     def __init__(self, txt):
         maskbits = None
         lst = txt.split('/', 1)
@@ -459,6 +469,7 @@ class IPAddress(object):
         return (self.family == net.family and
                 (self.aslong & net.mask) == net.aslong)
 
+
 def spawn_local(clientclass=_core.Client, server_verbosity=0):
     '''Create a private server instance and connect to it.'''
     global _local_id
@@ -472,6 +483,7 @@ def spawn_local(clientclass=_core.Client, server_verbosity=0):
     rc.set_socket(csock, 'local:%d' % _local_id)
     _local_id += 1
     return rc
+
 
 def server_main(args=None):
     '''Run by the easycluster script.'''
@@ -487,6 +499,7 @@ def server_main(args=None):
         servmod = None
 
     from optparse import OptionParser, SUPPRESS_HELP
+
     if args is None:
         args = sys.argv[1:]
 
@@ -494,15 +507,18 @@ def server_main(args=None):
     options = OptionParser(description="Runs the EasyCluster service and generates keyfiles", version=_core.VERSION)
     _core.add_key_options(options)
     options.add_option('-v', '--verbose', default=0, action='count', help='Increase the verbosity of the server.')
-    options.add_option('-S', '--serve', metavar='FILE', action='store_true', help='Run the server on the specified port')
+    options.add_option('-S', '--serve', metavar='FILE', action='store_true',
+                       help='Run the server on the specified port')
     options.add_option('-g', '--generate', metavar='FILE', help='Generate random HMAC key and '
-                       'write it to FILE. The file will be created with read access only for the owner.')
+                                                                'write it to FILE. The file will be created with read access only for the owner.')
     options.add_option('-O', '--overwrite', action='store_true', help='Allow --generate to overwrite existing keyfile')
-    options.add_option('-p', '--port', type='int', default=_core.DEFAULT_PORT, help='TCP port to listen on. Default: %d' % _core.DEFAULT_PORT)
+    options.add_option('-p', '--port', type='int', default=_core.DEFAULT_PORT,
+                       help='TCP port to listen on. Default: %d' % _core.DEFAULT_PORT)
     options.add_option('-b', '--bind', default=None, help='Bind the server to a specific IP address')
     options.add_option('-N', '--no-ipv6', action='store_true', help='Disable IPv6 support')
-    options.add_option('-a', '--allow', action='append', default=[], help='Allow only a specific address or subnet to connect '
-                       '(e.g. 192.168.0.0/24). Specify more than once to allow multiple addresses.')
+    options.add_option('-a', '--allow', action='append', default=[],
+                       help='Allow only a specific address or subnet to connect '
+                            '(e.g. 192.168.0.0/24). Specify more than once to allow multiple addresses.')
 
     ## Deprecated. Generally used only to specify QuietServer - quiet operation is now the default.
     options.add_option('-c', '--class', dest='svrclass', default=None, help=SUPPRESS_HELP)
@@ -517,17 +533,17 @@ def server_main(args=None):
     if servmod:
         options.add_option('-i', '--install', action='store_true',
                            help='Install EasyCluster as a service. The keyfile '
-                           'for this service is located at %s. If a keyfile is '
-                           'specified, it will be copied there; if no key exists '
-                           'currently, or if -O is given, a new key file will be '
-                           'written.' % servmod.KEY_PATH)
+                                'for this service is located at %s. If a keyfile is '
+                                'specified, it will be copied there; if no key exists '
+                                'currently, or if -O is given, a new key file will be '
+                                'written.' % servmod.KEY_PATH)
         options.add_option('-u', '--uninstall', action='store_true',
                            help='Uninstall the service.')
         options.add_option('--start', action='store_true', help='Start the service.')
         options.add_option('--stop', action='store_true', help='Stop the service, but don\'t uninstall it.')
         options.add_option('--query-installed', action='store_true',
                            help='Exits with code 0 if the service is installed, '
-                           'or code 1 if it is not.')
+                                'or code 1 if it is not.')
 
     opts, args = options.parse_args(args)
 
@@ -584,8 +600,8 @@ def server_main(args=None):
     else:
         options.print_help()
 
-def create_socket(family, bindaddr, port):
 
+def create_socket(family, bindaddr, port):
     sockaddr = ('', port)
     if bindaddr is not None:
         gai_family = 0 if family == socket.AF_INET6 else family
@@ -614,6 +630,7 @@ def create_socket(family, bindaddr, port):
         if family == socket.AF_INET6 and e.args[0] in (97, 10047):
             return create_socket(socket.AF_INET, bindaddr, port)
         raise
+
 
 def run_server(port, key, bindaddr=None, allow=(),
                verbosity=0, daemonize=False, pidfile=None, disable_ipv6=False):
@@ -705,6 +722,7 @@ def stop_server():
         _server_socket.close()
         _server_socket = None
 
+
 _local_id = 0
 
 if sys.platform.startswith('win'):
@@ -760,7 +778,7 @@ if sys.platform.startswith('win'):
 
         class _socketunion(Union):
             _fields_ = [('pyo', py_object),
-                       ('sock', POINTER(_socketobject))]
+                        ('sock', POINTER(_socketobject))]
 
         ## This function hacks a socket object to change its descriptor to the
         ## one returned by WSASocket.
@@ -797,14 +815,15 @@ if sys.platform.startswith('win'):
         p = subprocess.Popen(args, stdin=subprocess.PIPE)
         pinfo = dupsock(csock, p.pid)
         p.stdin.write(_core.b2a_hex(
-                _core.pickle.dumps((pinfo, csock.family, csock.type,
-                                    csock.proto, peername, key, verbosity),
-                                   protocol=_core.pickle.HIGHEST_PROTOCOL)) + b'\r\n')
+            _core.pickle.dumps((pinfo, csock.family, csock.type,
+                                csock.proto, peername, key, verbosity),
+                               protocol=_core.pickle.HIGHEST_PROTOCOL)) + b'\r\n')
         p.stdin.close()
 
     def server_check_runner():
         if len(sys.argv) == 2 and sys.argv[1] == MAGIC_ARG:
-            pinfo, family, type, proto, peername, key, verbosity = _core.pickle.loads(_core._hexdec(sys.stdin.readline().strip()))
+            pinfo, family, type, proto, peername, key, verbosity = _core.pickle.loads(
+                _core._hexdec(sys.stdin.readline().strip()))
             sys.stdin.close()
             sock = make_socket(family, type, proto, pinfo)
             try:

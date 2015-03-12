@@ -34,6 +34,7 @@ if not os.path.isdir(sysdir):
 KEY_PATH = os.path.join(sysdir, 'easycluster_service.key')
 del sysdir, sysroot
 
+
 class EasyClusterService(win32serviceutil.ServiceFramework):
     if _core.PYTHON3:
         _svc_name_ = 'EasyCluster-Py3'
@@ -50,10 +51,12 @@ class EasyClusterService(win32serviceutil.ServiceFramework):
             self.ReportServiceStatus(win32service.SERVICE_RUNNING)
             import easycluster.server
             import servicemanager
+
             servicemanager.LogInfoMsg('%s - Starting (%r)' % (self._svc_name_, sys.executable))
             easycluster.server.server_main(['-S', '-k', KEY_PATH])
         except Exception:
             import servicemanager
+
             servicemanager.LogErrorMsg(traceback.format_exc())
 
     def SvcStop(self):
@@ -61,24 +64,31 @@ class EasyClusterService(win32serviceutil.ServiceFramework):
 
         import easycluster.server
         import servicemanager
+
         servicemanager.LogInfoMsg('%s - Shutting down' % self._svc_name_)
         self.ReportServiceStatus(win32service.SERVICE_STOP_PENDING)
         easycluster.server.stop_server()
 
+
 def _service_action(*args):
     return win32serviceutil.HandleCommandLine(EasyClusterService, argv=[''] + list(args))
+
 
 def install_service():
     return _service_action('--startup', 'auto', 'install')
 
+
 def uninstall_service():
     return _service_action('remove')
+
 
 def start_service():
     return _service_action('start')
 
+
 def stop_service():
     return _service_action('stop')
+
 
 def query_service_installed():
     hscm = win32service.OpenSCManager(None, None, win32service.SC_MANAGER_ALL_ACCESS)
@@ -91,6 +101,7 @@ def query_service_installed():
             return False
     finally:
         win32service.CloseServiceHandle(hscm)
+
 
 daemonize = None
 
